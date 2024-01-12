@@ -1,0 +1,48 @@
+import numpy as np
+from sklearn import datasets
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, precision_score, confusion_matrix
+from skimage.feature import hog
+from skimage import exposure
+
+# Load MNIST dataset
+mnist = datasets.fetch_openml('mnist_784', version=1)
+data = mnist.data.astype("float") / 255.0
+target = mnist.target.astype("int")
+
+# Extract HOG features
+hog_features = []
+for image in data.values:
+    image = image.reshape((28, 28))
+    fd, hog_image = hog(image, orientations=8, pixels_per_cell=(4, 4), cells_per_block=(1, 1), visualize=True)
+    hog_features.append(fd)
+
+hog_features = np.array(hog_features)
+
+# Split dataset into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(hog_features, target, test_size=0.2, random_state=42)
+
+# Standardize features
+scaler = StandardScaler().fit(X_train)
+X_train = scaler.transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Train SVM
+svm_model = SVC(kernel='linear', C=1)
+svm_model.fit(X_train, y_train)
+
+# Make predictions
+y_pred = svm_model.predict(X_test)
+
+# Evaluate model
+accuracy = accuracy_score(y_test, y_pred)
+precision = precision_score(y_test, y_pred, average='weighted')
+conf_matrix = confusion_matrix(y_test, y_pred)
+
+# Print results
+print("Accuracy:", accuracy)
+print("Precision:", precision)
+print("Confusion Matrix:")
+print(conf_matrix)
